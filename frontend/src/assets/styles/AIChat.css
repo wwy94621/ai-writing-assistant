@@ -1,0 +1,560 @@
+.ai-chat {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #f3f2f1;
+    box-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,.132), 0 0.3px 0.9px 0 rgba(0,0,0,.108);
+    margin: 0;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', sans-serif;
+}
+
+.chat-header {
+    padding: 12px 16px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #edebe9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #323130;
+}
+
+.chat-options {
+    display: flex;
+    gap: 8px;
+}
+
+.chat-options select {
+    padding: 4px 8px;
+    border: 1px solid #8a8886;
+    border-radius: 2px;
+    font-size: 14px;
+    color: #323130;
+    background-color: #ffffff;
+    height: 32px;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    background-color: #f3f2f1;
+}
+
+.ai-chat form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ai-chat textarea {
+    width: 100%;
+    height: 150px;
+    padding: 8px 12px;
+    border: 1px solid #edebe9;
+    border-radius: 2px;
+    resize: vertical;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', sans-serif;
+    font-size: 14px;
+    color: #323130;
+}
+
+.ai-chat select, .ai-chat button {
+    border: 1px solid #8a8886;
+    border-radius: 2px;
+    font-size: 14px;
+}
+
+.ai-chat button {
+    background-color: #0078d4;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.1s ease-out;
+    font-weight: 600;
+    /* 移除统一的圆形样式 */
+}
+
+.ai-chat button:hover {
+    background-color: #106ebe;
+}
+
+.ai-chat button:active {
+    background-color: #005a9e;
+}
+
+.ai-response {
+    margin-top: 16px;
+    padding: 16px;
+    background-color: #ffffff;
+    border-radius: 2px;
+    box-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,.132), 0 0.3px 0.9px 0 rgba(0,0,0,.108);
+}
+
+.action-buttons {
+    margin-bottom: 16px;
+    display: flex;
+    gap: 8px;
+}
+
+.action-buttons button {
+    padding: 5px 16px;
+    border: 1px solid #0078d4;
+    background: #ffffff;
+    color: #0078d4;
+    border-radius: 2px;
+    cursor: pointer;
+    height: 32px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.action-buttons button.active {
+    background: #0078d4;
+    color: white;
+}
+
+.action-buttons button:hover {
+    background: rgba(0, 120, 212, 0.1);
+}
+
+.chat-history {
+    height: 60vh;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.message {
+    margin-bottom: 12px;
+    max-width: 85%;
+    width: auto;
+}
+
+.message.user {
+    align-self: flex-end;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.message.assistant {
+    align-self: flex-start;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.bubble {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 8px;
+    word-break: break-word;
+    max-width: 100%;
+}
+
+.message.user .bubble {
+    background-color: #0078d4;
+    color: white;
+    border-top-right-radius: 2px;
+    text-align: left;
+}
+
+.message.assistant .bubble {
+    background-color: #ffffff;
+    color: #323130;
+    border-top-left-radius: 2px;
+    box-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,.132), 0 0.3px 0.9px 0 rgba(0,0,0,.108);
+    text-align: left;
+}
+
+.bubble.loading {
+    padding: 8px 12px;
+}
+
+.bubble.loading span {
+    animation: loading-dots 1.5s infinite;
+    display: inline-block;
+    margin-right: 3px;
+    background-color: #0078d4;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.bubble.loading span:nth-child(2) {
+    animation-delay: 0.5s;
+}
+
+.bubble.loading span:nth-child(3) {
+    animation-delay: 1s;
+}
+
+@keyframes loading-dots {
+    0%, 20% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+    80%, 100% {
+        transform: translateY(0);
+    }
+}
+
+.chat-input-form {
+    display: flex;
+    background-color: #ffffff;
+    border-top: 1px solid #edebe9;
+}
+
+.input-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 8px 40px 8px 12px;
+    border: 1px solid #8a8886;
+    border-radius: 2px;
+    resize: none;
+    min-height: 40px;
+    max-height: 100px;
+    outline: none;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', sans-serif;
+    font-size: 14px;
+    color: #323130;
+}
+
+/* 确保圆形按钮的样式 - 发送按钮 */
+.send-button {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    background-color: transparent;
+    color: #0078d4;
+    border: none;
+    border-radius: 50%; /* 保持圆形 */
+    width: 32px;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    padding: 0;
+    transition: background-color 0.1s ease-out;
+}
+
+.send-button:hover {
+    background-color: rgba(0, 120, 212, 0.1);
+}
+
+.send-button:disabled {
+    color: #a19f9d;
+    cursor: not-allowed;
+}
+
+.send-button svg {
+    width: 24px;
+    height: 24px;
+}
+
+.chat-input-form button:disabled {
+    background-color: white;
+    color: #a19f9d;
+    cursor: not-allowed;
+}
+
+.action-tag {
+    display: block;
+    font-size: 12px;
+    color: #605e5c;
+    margin-bottom: 4px;
+}
+
+/* 保持消息容器一致性 */
+.message {
+    margin-bottom: 12px;
+    max-width: 85%;
+    width: auto;
+}
+
+/* 确保气泡样式一致 */
+.message .bubble {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    word-wrap: break-word;
+    box-sizing: border-box;
+    min-width: 50px;
+    text-align: left;
+    max-width: 100%;
+}
+
+.message.user .bubble {
+    background-color: #0078d4;
+    color: white;
+    border-top-right-radius: 2px;
+}
+
+.message.assistant .bubble {
+    background-color: #ffffff;
+    color: #323130;
+    border-top-left-radius: 2px;
+    box-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,.132), 0 0.3px 0.9px 0 rgba(0,0,0,.108);
+}
+
+/* 添加流式指示器的样式 */
+.streaming-indicator {
+  display: inline-block;
+  margin-left: 4px;
+}
+
+.streaming-indicator span {
+  display: inline-block;
+  animation: dot-flashing 1.5s infinite linear;
+  margin-right: 2px;
+}
+
+.streaming-indicator span:nth-child(2) {
+  animation-delay: 0.5s;
+}
+
+.streaming-indicator span:nth-child(3) {
+  animation-delay: 1s;
+}
+
+@keyframes dot-flashing {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* 增强流式消息的视觉效果 */
+.message.assistant.streaming .bubble {
+  border-left: 2px solid #0078d4;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    border-left-color: #0078d4;
+  }
+  50% {
+    border-left-color: #70c0ff;
+  }
+  100% {
+    border-left-color: #0078d4;
+  }
+}
+
+/* 优化打字效果 */
+.streaming-indicator {
+  display: inline-block;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.streaming-indicator span {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #0078d4;
+  margin-right: 3px;
+  animation: typing 1s infinite;
+}
+
+.streaming-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.streaming-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+/* 改进工具调用的流式显示效果 */
+.function-progress {
+  margin-top: 8px;
+  height: 4px;
+  background-color: #f0f0f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.function-progress .progress-bar {
+  height: 100%;
+  background-color: #0078d4;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  animation: progress-pulse 2s infinite;
+}
+
+@keyframes progress-pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+/* 编辑器预览样式 */
+.editor-preview {
+  margin-top: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.preview-header {
+  padding: 6px 10px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.preview-content {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #333;
+  max-height: 80px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* 为工具调用增加特殊样式 */
+.message.assistant .bubble.tool-call {
+  border-left: 3px solid #0078d4;
+  background-color: #fafafa;
+}
+
+/* 增强流式指示器动画，使其更明显 */
+.streaming-indicator span {
+  width: 5px;
+  height: 5px;
+  animation: typing 1.2s infinite;
+}
+
+/* 添加接受/放弃更改按钮的样式 */
+.change-actions {
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 5px 15px;
+    margin-bottom: 10px;
+    background-color: #f3f2f1;
+}
+
+.accept-changes-btn {
+    background-color: #0078d7; /* 蓝色 */
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 2px; /* 使用小圆角的矩形 */
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+    width: auto; /* 自动宽度以适应内容 */
+    height: auto; /* 自动高度 */
+    border-radius: 2px; /* 确保覆盖任何全局样式 */
+}
+
+.accept-changes-btn:hover {
+    background-color: #0063b1;
+}
+
+.reject-changes-btn {
+    background-color: transparent;
+    color: #4a4a4a;
+    border: 1px solid #d0d0d0;
+    padding: 6px 12px;
+    border-radius: 2px; /* 使用小圆角的矩形 */
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+    width: auto; /* 自动宽度以适应内容 */
+    height: auto; /* 自动高度 */
+    border-radius: 2px; /* 确保覆盖任何全局样式 */
+}
+
+.reject-changes-btn:hover {
+    background-color: #f5f5f5;
+}
+
+/* 确保其他按钮不继承圆形样式 */
+.action-buttons button {
+    border-radius: 2px !important;
+    width: auto !important;
+    height: 32px !important;
+}
+
+/* 确保圆形按钮的样式 - 重置按钮 */
+.reset-button {
+    background-color: white !important;  /* 改为白色背景 */
+    border: none;
+    cursor: pointer;
+    color: #0078d4 !important;  /* 设置为蓝色 #0078d4 */
+    border-radius: 50%; /* 保持圆形 */
+    width: 34px;
+    height: 34px;
+    min-width: 34px; /* 防止变形 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.ai-chat button.reset-button:hover {
+    background-color: rgba(0, 120, 212, 0.1) !important;  /* 保持悬停效果 */
+    color: #0078d4 !important;  /* 保持蓝色 */
+}
+
+/* 特别指定圆形按钮覆盖全局样式 */
+.ai-chat button.send-button,
+.ai-chat button.reset-button {
+    border-radius: 50%;
+}
+
+/* 特别指定重置按钮颜色 */
+.ai-chat button.reset-button {
+    background-color: white !important;
+    color: #0078d4 !important;
+}
+
+.reset-chat {
+    display: flex;
+    align-items: center;
+}
