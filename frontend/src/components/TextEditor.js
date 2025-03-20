@@ -22,6 +22,7 @@ const TextEditor = () => {
   const abortControllerRef = useRef(null);
   const [isComposing, setIsComposing] = useState(false); // 添加输入法组合状态
   const debounceTimerRef = useRef(null); // 添加防抖定时器引用
+  const [cursorCoords, setCursorCoords] = useState({ top: 0, left: 0 }); // 添加光标位置状态
   
   // 获取当前活动文档
   const activeDocument = documents.find(doc => doc.id === activeDocId) || documents[0];
@@ -58,10 +59,35 @@ const TextEditor = () => {
   
   // 修改debounce函数为组件内的普通函数，不再需要useCallback
   const debouncedFetchSuggestion = (text, position) => {
-    // 如果文本太短，不获取建议
-    if (text.length < 5) {
+    // 检查光标是否在当前段落末尾
+    const paragraphs = text.split('\n');
+    let currentParagraphIndex = 0;
+    let currentPosition = 0;
+    
+    // 找出光标所在的段落索引
+    for (let i = 0; i < paragraphs.length; i++) {
+      currentPosition += paragraphs[i].length + 1; // +1 是因为 '\n' 字符
+      if (currentPosition >= position) {
+        currentParagraphIndex = i;
+        break;
+      }
+    }
+    
+    // 检查光标是否在当前段落的末尾
+    const currentParagraph = paragraphs[currentParagraphIndex];
+    const paragraphEndPosition = currentPosition - (currentParagraphIndex < paragraphs.length - 1 ? 1 : 0);
+    const isAtParagraphEnd = position === paragraphEndPosition - currentParagraph.length + paragraphs[currentParagraphIndex].length;
+    
+    // 如果不在段落末尾或段落太短（少于5个字符），不获取建议
+    if (!isAtParagraphEnd || currentParagraph.length < 5) {
       setSuggestion('');
       return;
+    }
+    
+    // 准备要发送的文本内容，包括当前段落，如果当前段落文本较少，则加上上一个段落
+    let textToSend = currentParagraph;
+    if (currentParagraph.length < 20 && currentParagraphIndex > 0) {
+      textToSend = paragraphs[currentParagraphIndex - 1] + '\n' + textToSend;
     }
     
     if (debounceTimerRef.current) {
@@ -71,8 +97,8 @@ const TextEditor = () => {
     debounceTimerRef.current = setTimeout(() => {
       // 再次检查是否仍在组合状态，如果不在则发送请求
       if (!isComposing) {
-        console.log("Debounced request sending for:", text); // 调试日志
-        fetchSuggestion(text, position);
+        console.log("Debounced request sending for paragraph:", textToSend); // 调试日志
+        fetchSuggestion(textToSend, textToSend.length);
       } else {
         console.log("Skipping request - still composing"); // 调试日志
       }
@@ -91,11 +117,13 @@ const TextEditor = () => {
     const newPosition = e.target.selectionStart;
     setCursorPosition(newPosition);
     
+    // 获取光标坐标
+    updateCursorCoordinates();
+    
     // 清除现有建议
     setSuggestion('');
     
     // 只有在不处于输入法组合状态时才获取建议
-    // 在中文输入法处于组合状态时，不发送请求
     if (!isComposing) {
       // 如果有进行中的请求，取消它
       if (abortControllerRef.current) {
@@ -106,6 +134,55 @@ const TextEditor = () => {
       debouncedFetchSuggestion(newContent, newPosition);
     }
   };
+  
+  // 添加更新光标坐标的函数
+  const updateCursorCoordinates = () => {
+    if (textareaRef.current) {
+      const textarea = textareaRef.current;
+      const cursorPosition = textarea.selectionStart;
+      
+      // 简化光标位置计算，避免DOM操作导致的问题
+      // 获取视窗中文本区域的位置
+      const rect = textarea.getBoundingClientRect();
+      
+      // 计算每行高度（行高）
+      const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight) || 20;
+      
+      // 计算光标前文本中的换行符数量来估计行数
+      const textBeforeCursor = textarea.value.substring(0, cursorPosition);
+      const lines = textBeforeCursor.split('\n');
+      const lineCount = lines.length;
+      
+      // 最后一行的文本长度
+      const lastLineLength = lines[lines.length - 1].length;
+      
+      // 估计每个字符的宽度（使用平均值）
+      const charWidth = 8; // 假设平均字符宽度为8px
+      
+      // 计算光标坐标
+      const top = (lineCount - 1) * lineHeight + textarea.scrollTop;
+      const left = lastLineLength * charWidth + 15; // 15px是文本区域左内边距
+      
+      setCursorCoords({ top, left });
+    }
+  };
+
+  // 监听光标位置变化
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      if (document.activeElement === textareaRef.current) {
+        updateCursorCoordinates();
+      }
+    };
+    
+    document.addEventListener('selectionchange', handleSelectionChange);
+    window.addEventListener('resize', updateCursorCoordinates);
+    
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+      window.removeEventListener('resize', updateCursorCoordinates);
+    };
+  }, []);
   
   // 输入法组合开始事件处理函数
   const handleCompositionStart = () => {
@@ -130,14 +207,17 @@ const TextEditor = () => {
     setIsComposing(false);
     
     // 发送新请求
-    // 注意：这里直接调用fetchSuggestion而不是debouncedFetchSuggestion
-    // 因为我们希望在组合结束后立即发送请求，而不是再等待防抖时间
     setTimeout(() => {
       // 使用延时确保isComposing状态已更新
       if (newContent.length >= 5) {
         console.log("Sending request after composition end"); // 调试日志
-        fetchSuggestion(newContent, newPosition);
+        debouncedFetchSuggestion(newContent, newPosition);
       }
+    }, 0);
+    
+    // 更新光标坐标
+    setTimeout(() => {
+      updateCursorCoordinates();
     }, 0);
   };
   
@@ -239,18 +319,33 @@ const TextEditor = () => {
     if (e.key === 'Tab' && suggestion) {
       e.preventDefault(); // 阻止默认 Tab 行为
       
-      // 获取当前文本
+      // 获取当前文本和光标位置
       const currentContent = activeDocument.content;
-      let newContent;
+      const curPos = textareaRef.current.selectionStart;
       
-      // 检查文本是否有重叠部分
-      if (suggestion.startsWith(currentContent)) {
-        // 如果建议文本的开头就是当前文本，则直接使用建议文本
-        newContent = suggestion;
-      } else {
-        // 否则，拼接当前文本和建议文本
-        newContent = currentContent + suggestion;
+      // 将建议内容插入到光标所在位置
+      const beforeCursor = currentContent.substring(0, curPos);
+      const afterCursor = currentContent.substring(curPos);
+      
+      // 检查当前段落末尾与建议开头是否有重叠
+      // 找出光标所在的段落
+      const paragraphsBeforeCursor = beforeCursor.split('\n');
+      const currentParagraph = paragraphsBeforeCursor[paragraphsBeforeCursor.length - 1];
+      
+      // 如果建议文本与当前段落尾部有重叠，则移除重叠部分
+      let suggestionToInsert = suggestion;
+      if (currentParagraph.length > 0) {
+        // 检查当前段落结尾是否与建议文本开头有重叠
+        for (let i = Math.min(currentParagraph.length, suggestion.length); i > 0; i--) {
+          if (currentParagraph.endsWith(suggestion.substring(0, i))) {
+            suggestionToInsert = suggestion.substring(i);
+            break;
+          }
+        }
       }
+      
+      // 组合新文本
+      const newContent = beforeCursor + suggestionToInsert + afterCursor;
       
       // 更新编辑器内容
       setEditorContent(newContent);
@@ -264,8 +359,8 @@ const TextEditor = () => {
       // 清除当前建议
       setSuggestion('');
       
-      // 更新光标位置到文本末尾
-      const newPosition = newContent.length;
+      // 更新光标位置到插入文本后的位置
+      const newPosition = curPos + suggestionToInsert.length;
       setCursorPosition(newPosition);
       
       // 在下一个事件循环中设置光标位置
@@ -339,11 +434,22 @@ const TextEditor = () => {
           placeholder="开始输入文档内容..."
         />
         {suggestion && (
-          <div className="suggestion-overlay">
-            {/* 不可见的原始文本，仅用于占位 */}
-            <div className="invisible-text">{activeDocument.content}</div>
-            {/* 只显示建议的文本 */}
-            <div className="suggestion-container">
+          <div 
+            className="suggestion-display"
+            style={{
+              position: 'absolute',
+              top: `${cursorCoords.top + 25 + 20}px`, // 增加垂直偏移量，多下移一行
+              left: `${cursorCoords.left}px`,
+              maxWidth: '400px',
+              width: 'auto',
+              zIndex: 1000 // 确保在最上层
+            }}
+          >
+            <div className="suggestion-info">
+              按Tab键接受建议
+              <span className="suggestion-key">Tab ↹</span>
+            </div>
+            <div className="suggestion-content">
               <span className="suggestion-text">{suggestion}</span>
             </div>
           </div>
