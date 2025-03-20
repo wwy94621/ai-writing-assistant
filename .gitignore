@@ -1,0 +1,21 @@
+# 忽略单个文件
+
+
+# 忽略特定目录
+node_modules/
+dist/
+build/
+
+# 忽略特定文件类型
+*.log
+*.tmp
+*.env
+
+# 忽略特定目录下的特定文件，但不忽略整个目录
+logs/*.log
+!logs/important.log
+
+# 忽略以点开头的配置文件
+.env
+.env.local
+.vscode/
