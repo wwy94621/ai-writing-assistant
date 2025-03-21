@@ -749,7 +749,7 @@ const autoContent = async (req, res) => {
         },
         {
           role: 'user',
-          content: `请补齐以下文本内容（生成的补齐内容不要超过200个字符）：\n\n${text}`
+          content: `请用相同的语言补齐以下文本内容（生成的补齐内容不要超过200个字符）：\n\n${text}`
         }
       ],
       temperature: 0.7,

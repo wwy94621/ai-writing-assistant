@@ -58,7 +58,7 @@ const TextEditor = () => {
   };
   
   // 修改debounce函数为组件内的普通函数，不再需要useCallback
-  const debouncedFetchSuggestion = (text, position) => {
+  const debouncedFetchSuggestion = (text, position, forceExecute = false) => {
     // 检查光标是否在当前段落末尾
     const paragraphs = text.split('\n');
     let currentParagraphIndex = 0;
@@ -78,13 +78,21 @@ const TextEditor = () => {
     const paragraphEndPosition = currentPosition - (currentParagraphIndex < paragraphs.length - 1 ? 1 : 0);
     const isAtParagraphEnd = position === paragraphEndPosition - currentParagraph.length + paragraphs[currentParagraphIndex].length;
     
-    // 如果不在段落末尾或段落太短（少于5个字符），不获取建议
-    if (!isAtParagraphEnd || currentParagraph.length < 5) {
+    console.log("当前段落:", currentParagraph);
+    console.log("段落长度:", currentParagraph.length);
+    console.log("光标位置:", position);
+    console.log("段落结束位置:", paragraphEndPosition);
+    console.log("是否在段落末尾:", isAtParagraphEnd);
+    console.log("当前输入法状态:", isComposing ? "组合中" : "非组合");
+    
+    // 如果段落太短（少于5个字符），不获取建议
+    if (currentParagraph.length < 5) {
+      console.log("段落太短，不获取建议");
       setSuggestion('');
       return;
     }
     
-    // 准备要发送的文本内容，包括当前段落，如果当前段落文本较少，则加上上一个段落
+    // 准备要发送的文本内容
     let textToSend = currentParagraph;
     if (currentParagraph.length < 20 && currentParagraphIndex > 0) {
       textToSend = paragraphs[currentParagraphIndex - 1] + '\n' + textToSend;
@@ -94,15 +102,28 @@ const TextEditor = () => {
       clearTimeout(debounceTimerRef.current);
     }
     
-    debounceTimerRef.current = setTimeout(() => {
-      // 再次检查是否仍在组合状态，如果不在则发送请求
-      if (!isComposing) {
-        console.log("Debounced request sending for paragraph:", textToSend); // 调试日志
+    // 如果强制执行或者不在输入法选字过程中，则执行请求
+    if (forceExecute || !isComposing) {
+      console.log("准备发送请求，输入法状态:", isComposing ? "组合中" : "非组合", "强制执行:", forceExecute);
+      // 立即执行或使用延迟
+      if (forceExecute) {
+        console.log("强制执行，立即发送请求");
         fetchSuggestion(textToSend, textToSend.length);
       } else {
-        console.log("Skipping request - still composing"); // 调试日志
+        debounceTimerRef.current = setTimeout(() => {
+          console.log("延迟执行，当前输入法状态:", isComposing ? "组合中" : "非组合");
+          // 再次检查确保不在输入法组合中
+          if (!isComposing) {
+            console.log("发送请求:", textToSend);
+            fetchSuggestion(textToSend, textToSend.length);
+          } else {
+            console.log("跳过请求 - 当前仍在输入法选字过程中");
+          }
+        }, 300);
       }
-    }, 500); // 500毫秒的防抖延迟
+    } else {
+      console.log("跳过请求 - 当前正在输入法选字过程中");
+    }
   };
   
   const handleEditorChange = (e) => {
@@ -123,6 +144,8 @@ const TextEditor = () => {
     // 清除现有建议
     setSuggestion('');
     
+    console.log("编辑器内容变更，当前输入法状态:", isComposing ? "组合中(选字过程)" : "非组合");
+    
     // 只有在不处于输入法组合状态时才获取建议
     if (!isComposing) {
       // 如果有进行中的请求，取消它
@@ -130,8 +153,11 @@ const TextEditor = () => {
         abortControllerRef.current.abort();
       }
       
+      console.log("准备获取建议...");
       // 使用防抖函数获取新的建议
       debouncedFetchSuggestion(newContent, newPosition);
+    } else {
+      console.log("处于输入法选字状态，跳过获取建议");
     }
   };
   
@@ -186,7 +212,7 @@ const TextEditor = () => {
   
   // 输入法组合开始事件处理函数
   const handleCompositionStart = () => {
-    console.log("Composition started"); // 调试日志
+    console.log("输入法组合开始（选字过程开始）"); // 调试日志
     setIsComposing(true);
     
     // 取消任何待处理的请求
@@ -197,30 +223,56 @@ const TextEditor = () => {
   
   // 输入法组合结束事件处理函数
   const handleCompositionEnd = (e) => {
-    console.log("Composition ended"); // 调试日志
+    console.log("输入法组合结束（选字过程结束）"); // 调试日志
     
     // 获取组合结束时的值和光标位置
     const newContent = e.target.value;
     const newPosition = e.target.selectionStart;
     
-    // 先设置组合状态为false
+    // 立即将组合状态设为false
     setIsComposing(false);
     
-    // 发送新请求
-    setTimeout(() => {
-      // 使用延时确保isComposing状态已更新
-      if (newContent.length >= 5) {
-        console.log("Sending request after composition end"); // 调试日志
-        debouncedFetchSuggestion(newContent, newPosition);
+    // 直接调用fetchSuggestion而不是通过防抖函数，确保组合结束后立即执行
+    if (newContent.length >= 5) {
+      // 准备要发送的文本内容
+      const paragraphs = newContent.split('\n');
+      let currentParagraphIndex = 0;
+      let currentPosition = 0;
+      
+      // 找出光标所在的段落索引
+      for (let i = 0; i < paragraphs.length; i++) {
+        currentPosition += paragraphs[i].length + 1; // +1 是因为 '\n' 字符
+        if (currentPosition >= newPosition) {
+          currentParagraphIndex = i;
+          break;
+        }
       }
-    }, 0);
+      
+      const currentParagraph = paragraphs[currentParagraphIndex];
+      
+      // 如果段落太短，不获取建议
+      if (currentParagraph.length < 5) {
+        console.log("段落太短，不获取建议");
+        setSuggestion('');
+        return;
+      }
+      
+      // 准备要发送的文本内容
+      let textToSend = currentParagraph;
+      if (currentParagraph.length < 20 && currentParagraphIndex > 0) {
+        textToSend = paragraphs[currentParagraphIndex - 1] + '\n' + textToSend;
+      }
+      
+      console.log("输入法选字结束后直接发送请求:", textToSend);
+      
+      // 直接调用fetchSuggestion而非通过防抖函数
+      fetchSuggestion(textToSend, textToSend.length);
+    }
     
     // 更新光标坐标
-    setTimeout(() => {
-      updateCursorCoordinates();
-    }, 0);
+    setTimeout(updateCursorCoordinates, 0);
   };
-  
+
   // 获取自动补全建议
   const fetchSuggestion = async (text, position) => {
     // 如果文本太短，不获取建议
