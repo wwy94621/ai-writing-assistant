@@ -57,6 +57,23 @@ const TextEditor = () => {
     };
   };
   
+  // 获取上下文文本，根据字符限制累积段落
+  const getContextText = (paragraphs, currentParagraphIndex, charLimit = 1000) => {
+    let contextText = paragraphs[currentParagraphIndex]; // 当前段落
+    let totalChars = contextText.length;
+    let previousIndex = currentParagraphIndex - 1;
+    
+    // 向前添加段落，直到接近字符限制
+    while (previousIndex >= 0 && (totalChars + paragraphs[previousIndex].length + 1) < charLimit) {
+      contextText = paragraphs[previousIndex] + '\n' + contextText;
+      totalChars += paragraphs[previousIndex].length + 1; // +1 是因为换行符
+      previousIndex--;
+    }
+    
+    console.log(`收集的上下文: ${totalChars}个字符，使用了${currentParagraphIndex - previousIndex}个段落`);
+    return contextText;
+  };
+  
   // 修改debounce函数为组件内的普通函数，不再需要useCallback
   const debouncedFetchSuggestion = (text, position, forceExecute = false) => {
     // 检查光标是否在当前段落末尾
@@ -92,11 +109,8 @@ const TextEditor = () => {
       return;
     }
     
-    // 准备要发送的文本内容
-    let textToSend = currentParagraph;
-    if (currentParagraph.length < 20 && currentParagraphIndex > 0) {
-      textToSend = paragraphs[currentParagraphIndex - 1] + '\n' + textToSend;
-    }
+    // 使用优化的上下文收集逻辑
+    const textToSend = getContextText(paragraphs, currentParagraphIndex, 1000);
     
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -125,10 +139,13 @@ const TextEditor = () => {
       console.log("跳过请求 - 当前正在输入法选字过程中");
     }
   };
-  
+
   const handleEditorChange = (e) => {
-    // 更新编辑器内容
+    // 获取新旧内容
     const newContent = e.target.value;
+    const oldContent = activeDocument.content;
+    
+    // 更新编辑器内容
     setEditorContent(newContent);
     
     // 保留原有的状态更新逻辑
@@ -146,8 +163,11 @@ const TextEditor = () => {
     
     console.log("编辑器内容变更，当前输入法状态:", isComposing ? "组合中(选字过程)" : "非组合");
     
-    // 只有在不处于输入法组合状态时才获取建议
-    if (!isComposing) {
+    // 检查是否是删除操作
+    const isDeleteOperation = newContent.length < oldContent.length;
+    
+    // 只有在不处于输入法组合状态且不是删除操作时才获取建议
+    if (!isComposing && !isDeleteOperation) {
       // 如果有进行中的请求，取消它
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -156,6 +176,8 @@ const TextEditor = () => {
       console.log("准备获取建议...");
       // 使用防抖函数获取新的建议
       debouncedFetchSuggestion(newContent, newPosition);
+    } else if (isDeleteOperation) {
+      console.log("检测到删除操作，跳过获取建议");
     } else {
       console.log("处于输入法选字状态，跳过获取建议");
     }
@@ -257,11 +279,8 @@ const TextEditor = () => {
         return;
       }
       
-      // 准备要发送的文本内容
-      let textToSend = currentParagraph;
-      if (currentParagraph.length < 20 && currentParagraphIndex > 0) {
-        textToSend = paragraphs[currentParagraphIndex - 1] + '\n' + textToSend;
-      }
+      // 使用优化的上下文收集逻辑
+      const textToSend = getContextText(paragraphs, currentParagraphIndex, 1000);
       
       console.log("输入法选字结束后直接发送请求:", textToSend);
       
@@ -422,6 +441,12 @@ const TextEditor = () => {
           textareaRef.current.selectionEnd = newPosition;
         }
       }, 0);
+    }
+    
+    // ESC 键关闭建议卡片
+    if (e.key === 'Escape' && suggestion) {
+      e.preventDefault(); // 阻止默认 ESC 行为
+      setSuggestion(''); // 清除建议内容，关闭卡片
     }
   };
 
